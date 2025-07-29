@@ -6,7 +6,7 @@
 /*   By: ral-moha <ral-moha@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/13 20:42:45 by ral-moha          #+#    #+#             */
-/*   Updated: 2025/07/22 23:31:27 by ral-moha         ###   ########.fr       */
+/*   Updated: 2025/07/29 13:23:49 by ral-moha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,7 +69,7 @@ int	exec_cd(t_ast_node *n, t_myenv *e)
 		return (go_env(1, e));
 	save_oldpwd(e);
 	if (chdir(a[1]) == -1)
-		return (cd_perr(strerror(errno), a[1], e), 1);
+		return (cd_perr(a[1], strerror(errno), e), 1);
 	e->exit_code = 0;
 	return (1);
 }

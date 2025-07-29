@@ -6,7 +6,7 @@
 /*   By: ral-moha <ral-moha@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/01/30 11:22:33 by cdiab             #+#    #+#             */
-/*   Updated: 2025/07/22 23:24:00 by ral-moha         ###   ########.fr       */
+/*   Updated: 2025/07/29 13:07:40 by ral-moha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,14 +35,10 @@ int main(int ac, char **av, char **env)
 		if (input)
 			add_history(input);
 		tokenlist = tokenizeInput(input);
-		// printTokens(tokenlist);
-		// printTokens(tokenlist);
 		root = build_ast(tokenlist);
+		// print_ast(root, 0);
 		free_tokenlist(tokenlist);
-		// print_ast(root, 0);
 		execute_ast(root, myenv);
-		// test(root);
-		// print_ast(root, 0);
 		(void)tokenlist;
 	}
 	free_env(myenv->env);

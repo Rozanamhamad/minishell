@@ -6,7 +6,7 @@
 /*   By: ral-moha <ral-moha@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/01/14 11:19:10 by cdiab             #+#    #+#             */
-/*   Updated: 2025/07/21 17:53:29 by ral-moha         ###   ########.fr       */
+/*   Updated: 2025/07/28 23:38:55 by ral-moha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -78,6 +78,7 @@ typedef struct s_ast_node {
 	struct s_ast_node	*left;
 	struct s_ast_node	*right;
 }	t_ast_node;
+
 
 void		handle_pipe(int *i, t_tokenlist *token_list);
 void		handle_redirection(int *i, t_tokenlist *token_list,
@@ -168,5 +169,7 @@ void free_split(char **arr);
 char *get_env_value(t_myenv *env, const char *key);
 void handle_redirection(int *i, t_tokenlist *token_list, const char *input);
 int handle_builtins(t_ast_node *node, t_myenv *env);
+// t_ast_node *parse_simple_command(t_tokenlist *tokens);
 
+void add_or_update_env_var(t_myenv *env, const char *key, const char *value);
 #endif
