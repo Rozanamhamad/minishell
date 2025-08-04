@@ -13,29 +13,39 @@
 #include "../minishell.h"
 
 
+static int is_in_pipe_context = 0;
+
+void set_pipe_context(int in_pipe)
+{
+    is_in_pipe_context = in_pipe;
+}
+
 void	handle_heredoc(t_ast_node *node)
 {
-	int		pipefd[2];           // Will hold file descriptors: pipefd[0] for reading, pipefd[1] for writing
-	char	*line;               // To store each line the user inputs
+	int		pipefd[2];
+	char	*line;
+	char	*prompt;
 
-	if (pipe(pipefd) == -1)      // Create a pipe. If it fails, print error and return.
+	if (pipe(pipefd) == -1)
 		return (perror("pipe"), (void)0);
 
-	while (1)                    // Infinite loop to read heredoc lines
-	{
-		line = readline("> ");   // Prompt the user with "> " and read input line
+	// Use context-aware prompt
+	prompt = is_in_pipe_context ? "pipe heredoc> " : "heredoc> ";
 
-		if (!line || strcmp(line, node->in) == 0) // If user presses Ctrl+D or input matches limiter
+	while (1)
+	{
+		line = readline(prompt);
+
+		if (!line || strcmp(line, node->in) == 0)
 		{
-			free(line);         // Free the input line memory
-			break;              // Exit the loop
+			free(line);
+			break;
 		}
-		write(pipefd[1], line, strlen(line)); // Write input line to pipe
-		write(pipefd[1], "\n", 1);            // Add newline to simulate actual user input
-		free(line);            // Free after writing to pipe
+		write(pipefd[1], line, strlen(line));
+		write(pipefd[1], "\n", 1);
+		free(line);
 	}
 
-	close(pipefd[1]);           // Close the write end of the pipe (we're done writing)
-	dup2(pipefd[0], STDIN_FILENO); // Redirect stdin to read from pipe (heredoc content)
-	close(pipefd[0]);           // Close the read end after dup2 (no longer needed)
+	close(pipefd[1]);
+	node->heredoc_fd = pipefd[0];  // Store fd instead of immediate dup2
 }

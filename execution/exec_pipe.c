@@ -17,7 +17,7 @@
 //  * 1. Expand environment variables
 //  * 2. Remove quotations
 //  */
-void preprocess_ast(t_ast_node *node, t_myenv *my_env)
+void preprocess_ast_with_context(t_ast_node *node, t_myenv *my_env, int is_in_pipe)
 {
 	int i = 0;
 	char *exp, *noq;
@@ -25,22 +25,41 @@ void preprocess_ast(t_ast_node *node, t_myenv *my_env)
 	if (!node)
 		return;
 
-	preprocess_ast(node->left, my_env);
-
-	if (node->arr)
+	// For PIPE nodes, both children are in pipe context
+	if (node->type == T_PIPE)
 	{
-		while (node->arr[i])
+		preprocess_ast_with_context(node->left, my_env, 1);
+		preprocess_ast_with_context(node->right, my_env, 1);
+	}
+	else
+	{
+		// Handle heredoc preprocessing for this node with correct context
+		if (node->ex_heredoc)
 		{
-			exp = expand_string(node->arr[i], my_env); // Expand $VARs
-			if (!exp)
-				return;
-			noq = clean_quotations(exp); // Remove quotes
-			free(exp);
-			free(node->arr[i]);
-			node->arr[i++] = noq;
+			set_pipe_context(is_in_pipe);
+			handle_heredoc(node);
+			set_pipe_context(0);
+		}
+
+		if (node->arr)
+		{
+			while (node->arr[i])
+			{
+				exp = expand_string(node->arr[i], my_env);
+				if (!exp)
+					return;
+				noq = clean_quotations(exp);
+				free(exp);
+				free(node->arr[i]);
+				node->arr[i++] = noq;
+			}
 		}
 	}
-	preprocess_ast(node->right, my_env);
+}
+
+void preprocess_ast(t_ast_node *node, t_myenv *my_env)
+{
+	preprocess_ast_with_context(node, my_env, 0);
 }
 
 

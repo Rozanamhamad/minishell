@@ -75,6 +75,7 @@ typedef struct s_ast_node {
 	char				*out;
 	int					app;
 	int					ex_heredoc;
+	int					heredoc_fd;
 	struct s_ast_node	*left;
 	struct s_ast_node	*right;
 }	t_ast_node;
@@ -164,6 +165,8 @@ int setup_redirections(t_ast_node *node, int *fd_in, int *fd_out, t_myenv *env);
 void exec_child_process(t_ast_node *node, t_myenv *env, int fd_in, int fd_out);
 void execute_pipe(t_ast_node *node, t_myenv *env);
 void	handle_heredoc(t_ast_node *node);
+void	preprocess_ast_with_context(t_ast_node *node, t_myenv *my_env, int is_in_pipe);
+void	set_pipe_context(int in_pipe);
 char *find_path(const char *cmd, t_myenv *env);
 void free_split(char **arr);
 char *get_env_value(t_myenv *env, const char *key);

@@ -33,7 +33,7 @@ char	*get_token(const char *input, int *i)
 		else if (input[*i] == '"' && !sq)
 			dq = !dq;
 		else if (!sq && !dq && (input[*i] == ' ' || input[*i] == '\t'
-				|| input[*i] == '\n'))
+				|| input[*i] == '\n' || input[*i] == '|' || input[*i] == '<' || input[*i] == '>'))
 			break ;
 		(*i)++;
 	}

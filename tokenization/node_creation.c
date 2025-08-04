@@ -91,16 +91,41 @@ void	free_tokenlist(t_tokenlist *list)
 t_tokenlist	*tokenizeInput(const char *input)
 {
 	t_tokenlist	*list;
-	char		*token;
 	int			i;
 
 	i = 0;
 	list = create_tokenlist();
 	if (!list)
 		return (NULL);
-	while ((token = get_token(input, &i)))
+	
+	while (input[i])
 	{
-		addtoken(list, token, T_SCMD);
+		// Skip whitespace
+		while (input[i] && (input[i] == ' ' || input[i] == '\t'))
+			i++;
+		if (!input[i])
+			break;
+
+		// Handle redirection operators
+		if (input[i] == '<' || input[i] == '>')
+		{
+			handle_redirection(&i, list, input);
+		}
+		// Handle pipe operators
+		else if (input[i] == '|')
+		{
+			handle_pipe(&i, list);
+		}
+		// Handle regular tokens
+		else
+		{
+			char *token = get_token(input, &i);
+			if (token)
+			{
+				addtoken(list, token, T_SCMD);
+				free(token);
+			}
+		}
 	}
 	return (list);
 }

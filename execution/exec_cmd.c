@@ -24,8 +24,9 @@ void execute_simple_cmd(t_ast_node *node, t_myenv *env)
     if (!node || !node->arr || !node->arr[0])
         return;
 
-    if (node->ex_heredoc)
-        handle_heredoc(node);
+    // Heredoc is now handled in preprocessing phase
+    // if (node->ex_heredoc)
+    //     handle_heredoc(node);
 
     /* Only open files here; do NOT dup2 inside setup_redirections */
     if (!setup_redirections(node, &fd_in, &fd_out, env))
@@ -98,35 +99,48 @@ void execute_simple_cmd(t_ast_node *node, t_myenv *env)
 int setup_redirections(t_ast_node *node, int *fd_in, int *fd_out, t_myenv *env)
 {
     int fd;
+    int input_failed = 0;
+    int output_failed = 0;
 
     if (!node) return 0;
     if (fd_in)  *fd_in  = -1;
     if (fd_out) *fd_out = -1;
 
-    /* input: '< file' */
-    if (node->in) {
-        fd = open(node->in, O_RDONLY);
+    /* input: '< file' or heredoc */
+    if (node->heredoc_fd != -1) {
+        // Use heredoc file descriptor
+        if (fd_in) *fd_in = node->heredoc_fd;
+    } else if (node->in) {
+        char *clean_filename = clean_quotations(node->in);
+        fd = open(clean_filename, O_RDONLY);
         if (fd == -1) {
-            perror(node->in);                  // e.g., ENOENT
+            perror(clean_filename);
             env->exit_code = 1;
-            return 0;                          // <- ERROR: stop here
+            input_failed = 1;
+        } else {
+            if (fd_in) *fd_in = fd;
         }
-        if (fd_in) *fd_in = fd;
+        free(clean_filename);
     }
 
     /* output: '>' or '>>' */
     if (node->out) {
+        char *clean_filename = clean_quotations(node->out);
         int flags = O_WRONLY | O_CREAT | (node->app ? O_APPEND : O_TRUNC);
-        fd = open(node->out, flags, 0644);     // <- O_CREAT is REQUIRED
+        fd = open(clean_filename, flags, 0644);
         if (fd == -1) {
-            perror(node->out);
+            perror(clean_filename);
             if (fd_in && *fd_in != -1) close(*fd_in);
             env->exit_code = 1;
-            return 0;                          // <- ERROR: stop here
+            output_failed = 1;
+        } else {
+            if (fd_out) *fd_out = fd;
         }
-        if (fd_out) *fd_out = fd;
+        free(clean_filename);
     }
-    return 1;                                   // success
+    
+    // Return success only if both redirections succeeded
+    return !(input_failed || output_failed);
 }
 void exec_child_process(t_ast_node *node, t_myenv *env, int fd_in, int fd_out)
 {
