@@ -202,9 +202,19 @@ void	app_heredoc(t_tokennode *token, t_ast_node *node)
     t_tokennode *cur = token;
 
     if (strcmp(cur->token, ">>") == 0 && cur->next && cur->next->token) {
-        // For multiple append redirections: open all files but keep only the last one
-        if (node->out && node->app) {
-            // Open previous append file to create it (bash behavior)
+        // Handle mixed redirections: > followed by >> (for Test 62)
+        if (node->out && node->app == 0) {
+            // We had > before, now we have >> - create the > file first (bash behavior)
+            char *clean_filename = clean_quotations(node->out);
+            int fd = open(clean_filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            if (fd != -1) {
+                close(fd);  // Successfully created first file
+            }
+            // Continue processing - let execution handle any errors
+            free(clean_filename);
+            free(node->out);
+        } else if (node->out && node->app) {
+            // For multiple append redirections: open all files but keep only the last one
             char *clean_filename = clean_quotations(node->out);
             int fd = open(clean_filename, O_WRONLY | O_CREAT | O_APPEND, 0644);
             if (fd == -1) {
