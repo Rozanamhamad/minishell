@@ -197,6 +197,16 @@ void execute_pipe(t_ast_node *node, t_myenv *env)
     close(fd[0]);
     close(fd[1]);
 
+    /* Close any heredoc fds in parent to ensure proper EOF signaling */
+    if (node->left && node->left->heredoc_fd != -1) {
+        close(node->left->heredoc_fd);
+        node->left->heredoc_fd = -1;
+    }
+    if (node->right && node->right->heredoc_fd != -1) {
+        close(node->right->heredoc_fd);
+        node->right->heredoc_fd = -1;
+    }
+
     waitpid(l, &s_left, 0);
     waitpid(r, &s_right, 0);
 
