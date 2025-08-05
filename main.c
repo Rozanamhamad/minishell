@@ -25,22 +25,50 @@ int main(int ac, char **av, char **env)
 	myenv = malloc(sizeof(t_myenv));
 	myenv->env = copy_env(env);
 	myenv->exit_code = 0;
-	// print_double_pointer(myenv->env);
+	
+	// Set up signal handlers for interactive mode
+	prep_signals();
+	
 	input = NULL;
 	while (1)
 	{
 		input = readline("minishell>");
+		
+		// Check for signals immediately after readline (like Ctrl-C at prompt)
+		ft_check_signal(myenv);
+		
+		// Handle Ctrl-D (EOF)
 		if (input == NULL)
-			return (0);
-		if (input)
-			add_history(input);
+		{
+			write(STDOUT_FILENO, "exit\n", 5);
+			break;
+		}
+		
+		// Skip empty input
+		if (input[0] == '\0')
+		{
+			free(input);
+			continue;
+		}
+		
+		// Add to history
+		add_history(input);
+		
+		// Parse and execute
 		tokenlist = tokenizeInput(input);
 		root = build_ast(tokenlist);
-		// print_ast(root, 0);
 		free_tokenlist(tokenlist);
 		execute_ast(root, myenv);
-		(void)tokenlist;
+		
+		// Check if any signals were received during execution
+		ft_check_signal(myenv);
+		
+		free(input);
 	}
+	
+	// Cleanup
 	free_env(myenv->env);
+	free(myenv);
+	return (myenv->exit_code);
 }
 

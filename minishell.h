@@ -174,4 +174,15 @@ int handle_builtins(t_ast_node *node, t_myenv *env);
 // t_ast_node *parse_simple_command(t_tokenlist *tokens);
 
 void add_or_update_env_var(t_myenv *env, const char *key, const char *value);
+
+// Signal handling functions
+extern int g_signal_exit_status;
+void ft_sigint_handler_beforecmd(int sig);
+void ft_sigint_handler_incmd(int sig);
+void ft_sigint_heredoc(int sig);
+void handle_sigquit(int sig);
+void prep_signals(void);
+void ft_check_signal(t_myenv *my_env);
+void check_exit_signals(t_ast_node *node, t_myenv *my_env);
+
 #endif

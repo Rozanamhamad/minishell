@@ -19,7 +19,8 @@ SRC = main.c \
       builtsin/unset.c \
       builtsin/cd.c \
       builtsin/env_utils.c \
-      builtsin/export.c
+      builtsin/export.c \
+      signals/signals.c
 
 # Object files
 OBJS = ${SRC:.c=.o}

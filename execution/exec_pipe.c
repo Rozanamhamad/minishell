@@ -161,6 +161,8 @@ void execute_pipe(t_ast_node *node, t_myenv *env)
     l = fork();
     if (l == 0) {
         /* child: left writer */
+        signal(SIGINT, SIG_DFL);                     /* default signal behavior */
+        signal(SIGQUIT, SIG_DFL);
         close(fd[0]);                                /* no read */
         if (dup2(fd[1], STDOUT_FILENO) == -1) {      /* stdout -> pipe */
             perror("dup2");
@@ -185,6 +187,8 @@ void execute_pipe(t_ast_node *node, t_myenv *env)
     r = fork();
     if (r == 0) {
         /* child: right reader */
+        signal(SIGINT, SIG_DFL);                     /* default signal behavior */
+        signal(SIGQUIT, SIG_DFL);
         close(fd[1]);                                /* no write */
         if (dup2(fd[0], STDIN_FILENO) == -1) {       /* stdin <- pipe */
             perror("dup2");

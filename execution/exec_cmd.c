@@ -128,6 +128,10 @@ void execute_simple_cmd(t_ast_node *node, t_myenv *env)
         env->exit_code = 1;
         return;
     } else if (pid == 0) {
+        // Set up default signal behavior for child process
+        signal(SIGINT, SIG_DFL);
+        signal(SIGQUIT, SIG_DFL);
+        
         if (fd_in  != -1) { if (dup2(fd_in,  STDIN_FILENO)  == -1) { perror("dup2"); _exit(1);} close(fd_in); }
         if (fd_out != -1) { if (dup2(fd_out, STDOUT_FILENO) == -1) { perror("dup2"); _exit(1);} close(fd_out); }
         
@@ -242,6 +246,10 @@ int setup_redirections(t_ast_node *node, int *fd_in, int *fd_out, t_myenv *env)
 }
 void exec_child_process(t_ast_node *node, t_myenv *env, int fd_in, int fd_out)
 {
+	// Set up default signal behavior for child process
+	signal(SIGINT, SIG_DFL);
+	signal(SIGQUIT, SIG_DFL);
+	
 	if (fd_in != -1)
 		dup2(fd_in, STDIN_FILENO);
 	if (fd_out != -1)
