@@ -23,6 +23,52 @@ void execute_simple_cmd(t_ast_node *node, t_myenv *env)
 
     if (!node || !node->arr || !node->arr[0])
         return;
+    
+    // Filter out empty arguments (e.g., from $EMPTY expansion)
+    char **filtered_args = NULL;
+    int arg_count = 0;
+    int i = 0;
+    
+    // Count non-empty arguments
+    while (node->arr[i])
+    {
+        if (node->arr[i][0] != '\0')
+            arg_count++;
+        i++;
+    }
+    
+    // If no non-empty arguments, handle empty command
+    if (arg_count == 0)
+    {
+        if (!setup_redirections(node, &fd_in, &fd_out, env))
+            return;
+        if (fd_in != -1) close(fd_in);
+        if (fd_out != -1) close(fd_out);
+        env->exit_code = 0;
+        return;
+    }
+    
+    // Create filtered array with non-empty args
+    filtered_args = malloc(sizeof(char*) * (arg_count + 1));
+    if (!filtered_args)
+    {
+        env->exit_code = 1;
+        return;
+    }
+    
+    i = 0;
+    int j = 0;
+    while (node->arr[i])
+    {
+        if (node->arr[i][0] != '\0')
+            filtered_args[j++] = node->arr[i];
+        i++;
+    }
+    filtered_args[j] = NULL;
+    
+    // Replace the original array temporarily
+    char **original_arr = node->arr;
+    node->arr = filtered_args;
 
     // Heredoc is now handled in preprocessing phase
     // if (node->ex_heredoc)
@@ -64,6 +110,10 @@ void execute_simple_cmd(t_ast_node *node, t_myenv *env)
         /* restore */
         if (saved_in  != -1) { dup2(saved_in,  STDIN_FILENO);  close(saved_in); }
         if (saved_out != -1) { dup2(saved_out, STDOUT_FILENO); close(saved_out); }
+        
+        /* cleanup and restore original array */
+        free(filtered_args);
+        node->arr = original_arr;
         return;
     }
 
@@ -73,14 +123,56 @@ void execute_simple_cmd(t_ast_node *node, t_myenv *env)
         perror("fork");
         if (fd_in  != -1) close(fd_in);
         if (fd_out != -1) close(fd_out);
+        free(filtered_args);
+        node->arr = original_arr;
         env->exit_code = 1;
         return;
     } else if (pid == 0) {
         if (fd_in  != -1) { if (dup2(fd_in,  STDIN_FILENO)  == -1) { perror("dup2"); _exit(1);} close(fd_in); }
         if (fd_out != -1) { if (dup2(fd_out, STDOUT_FILENO) == -1) { perror("dup2"); _exit(1);} close(fd_out); }
-        execve(find_path(node->arr[0], env), node->arr, env->env);
-        perror("execve");
-        _exit(127);
+        
+        char *cmd_path = find_path(node->arr[0], env);
+        if (!cmd_path) {
+            // Command not found in PATH or NULL command
+            write(STDERR_FILENO, node->arr[0], strlen(node->arr[0]));
+            write(STDERR_FILENO, ": command not found\n", 20);
+            _exit(127);
+        }
+        
+        // Check if path exists and get its status
+        struct stat st;
+        if (stat(cmd_path, &st) == -1) {
+            perror(cmd_path);
+            free(cmd_path);
+            _exit(127);  // File doesn't exist
+        }
+        
+        // Check if it's a directory
+        if (S_ISDIR(st.st_mode)) {
+            write(STDERR_FILENO, cmd_path, strlen(cmd_path));
+            write(STDERR_FILENO, ": Is a directory\n", 17);
+            free(cmd_path);
+            _exit(126);
+        }
+        
+        // Try to execute
+        execve(cmd_path, node->arr, env->env);
+        
+        // If execve failed, check why
+        if (access(cmd_path, F_OK) != 0) {
+            perror(cmd_path);
+            free(cmd_path);
+            _exit(127);  // File doesn't exist
+        } else if (access(cmd_path, X_OK) != 0) {
+            write(STDERR_FILENO, cmd_path, strlen(cmd_path));
+            write(STDERR_FILENO, ": Permission denied\n", 20);
+            free(cmd_path);
+            _exit(126);  // Permission denied
+        } else {
+            perror(cmd_path);
+            free(cmd_path);
+            _exit(126);  // Other execution error
+        }
     }
 
     if (fd_in  != -1) close(fd_in);
@@ -94,6 +186,10 @@ void execute_simple_cmd(t_ast_node *node, t_myenv *env)
     } else if (WIFSIGNALED(status)) {
         env->exit_code = 128 + WTERMSIG(status);
     }
+    
+    /* cleanup and restore original array */
+    free(filtered_args);
+    node->arr = original_arr;
 }
 
 int setup_redirections(t_ast_node *node, int *fd_in, int *fd_out, t_myenv *env)
@@ -151,7 +247,41 @@ void exec_child_process(t_ast_node *node, t_myenv *env, int fd_in, int fd_out)
 	if (fd_in != -1) close(fd_in);
 	if (fd_out != -1) close(fd_out);
 
-	execve(find_path(node->arr[0], env), node->arr, env->env);
-	perror("execve");
-	exit(127);
+	char *cmd_path = find_path(node->arr[0], env);
+	if (!cmd_path) {
+		write(STDERR_FILENO, node->arr[0], strlen(node->arr[0]));
+		write(STDERR_FILENO, ": command not found\n", 20);
+		exit(127);
+	}
+	
+	struct stat st;
+	if (stat(cmd_path, &st) == -1) {
+		perror(cmd_path);
+		free(cmd_path);
+		exit(127);
+	}
+	
+	if (S_ISDIR(st.st_mode)) {
+		write(STDERR_FILENO, cmd_path, strlen(cmd_path));
+		write(STDERR_FILENO, ": Is a directory\n", 17);
+		free(cmd_path);
+		exit(126);
+	}
+	
+	execve(cmd_path, node->arr, env->env);
+	
+	if (access(cmd_path, F_OK) != 0) {
+		perror(cmd_path);
+		free(cmd_path);
+		exit(127);
+	} else if (access(cmd_path, X_OK) != 0) {
+		write(STDERR_FILENO, cmd_path, strlen(cmd_path));
+		write(STDERR_FILENO, ": Permission denied\n", 20);
+		free(cmd_path);
+		exit(126);
+	} else {
+		perror(cmd_path);
+		free(cmd_path);
+		exit(126);
+	}
 }
