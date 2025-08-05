@@ -212,7 +212,8 @@ int setup_redirections(t_ast_node *node, int *fd_in, int *fd_out, t_myenv *env)
     if (node->heredoc_fd != -1) {
         // Use heredoc file descriptor
         if (fd_in) *fd_in = node->heredoc_fd;
-    } else if (node->in) {
+    } else if (node->in && !node->ex_heredoc) {
+        // Only try to open as file if it's NOT a heredoc (ex_heredoc == 0)
         char *clean_filename = clean_quotations(node->in);
         fd = open(clean_filename, O_RDONLY);
         if (fd == -1) {
@@ -223,6 +224,10 @@ int setup_redirections(t_ast_node *node, int *fd_in, int *fd_out, t_myenv *env)
             if (fd_in) *fd_in = fd;
         }
         free(clean_filename);
+    } else if (node->in && node->ex_heredoc && node->heredoc_fd == -1) {
+        // This was a heredoc that was canceled (Ctrl-C), fail silently
+        env->exit_code = 130;
+        input_failed = 1;
     }
 
     /* output: '>' or '>>' */
