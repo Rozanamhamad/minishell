@@ -6,7 +6,7 @@
 /*   By: ral-moha <ral-moha@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/05 00:29:11 by cdiab             #+#    #+#             */
-/*   Updated: 2025/07/29 00:10:39 by ral-moha         ###   ########.fr       */
+/*   Updated: 2025/08/05 20:50:33 by ral-moha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,15 +17,17 @@
 //  * 1. Expand environment variables
 //  * 2. Remove quotations
 //  */
+
 void preprocess_ast_with_context(t_ast_node *node, t_myenv *my_env, int is_in_pipe)
 {
 	int i = 0;
 	char *exp, *noq;
+	(void)is_in_pipe; // Suppress unused parameter warning
 
 	if (!node)
 		return;
 
-	// For PIPE nodes, both children are in pipe context
+	// For PIPE nodes, process children recursively
 	if (node->type == T_PIPE)
 	{
 		preprocess_ast_with_context(node->left, my_env, 1);
@@ -33,14 +35,13 @@ void preprocess_ast_with_context(t_ast_node *node, t_myenv *my_env, int is_in_pi
 	}
 	else
 	{
-		// Handle heredoc preprocessing for this node with correct context
+		// Handle heredoc preprocessing for this node
 		if (node->ex_heredoc)
 		{
-			set_pipe_context(is_in_pipe);
 			handle_heredoc(node);
-			set_pipe_context(0);
 		}
 
+		// Process command arguments (expand variables and remove quotes)
 		if (node->arr)
 		{
 			while (node->arr[i])
@@ -84,7 +85,11 @@ void execute_ast(t_ast_node *node, t_myenv *env)
         return;
 
     // Only treat as a pipe if both children exist
+    // printf("AST BEFORE: ");
+    // print_ast(node, 0);
     preprocess_ast(node, env);
+    // printf("AST AFTER: ");
+    // print_ast(node, 0);
     // if (handle_builtins(node, env))
     //     return ;
     if (node->type == T_PIPE && node->left && node->right)
@@ -163,7 +168,11 @@ void execute_pipe(t_ast_node *node, t_myenv *env)
         }
         close(fd[1]);
 
-        execute_ast(node->left, env);                /* <-- always run node */
+        // Child nodes are already preprocessed, execute them directly without re-preprocessing
+        if (node->left->type == T_PIPE)
+            execute_pipe(node->left, env);
+        else
+            execute_simple_cmd(node->left, env);
         _exit(env->exit_code);
     } else if (l < 0) {
         perror("fork");
@@ -183,12 +192,11 @@ void execute_pipe(t_ast_node *node, t_myenv *env)
         }
         close(fd[0]);
 
-        /* Right child shouldn't use heredoc_fd - close it if it exists */
-        if (node->left && node->left->heredoc_fd != -1) {
-            close(node->left->heredoc_fd);
-        }
-
-        execute_ast(node->right, env);               /* <-- always run node */
+        // Child nodes are already preprocessed, execute them directly without re-preprocessing
+        if (node->right->type == T_PIPE)
+            execute_pipe(node->right, env);
+        else
+            execute_simple_cmd(node->right, env);
         _exit(env->exit_code);
     } else if (r < 0) {
         perror("fork");

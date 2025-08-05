@@ -16,17 +16,18 @@ int	find_pipe_index(t_tokenlist *list)
 {
 	t_tokennode	*cur;
 	int			i;
+	int			last_pipe = -1;
 
 	cur = list->head;
 	i = 0;
 	while (cur)
 	{
 		if (strcmp(cur->token, "|") == 0)
-			return (i);
+			last_pipe = i;
 		cur = cur->next;
 		i++;
 	}
-	return (-1);
+	return (last_pipe);
 }
 
 t_tokenlist	*copy_range(t_tokenlist *original, int start, int end)

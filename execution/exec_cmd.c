@@ -203,6 +203,8 @@ int setup_redirections(t_ast_node *node, int *fd_in, int *fd_out, t_myenv *env)
     if (fd_out) *fd_out = -1;
 
     /* input: '< file' or heredoc */
+    /* Note: In a pipeline, stdin might already be connected to a pipe.
+       Only use heredoc if stdin is not already redirected */
     if (node->heredoc_fd != -1) {
         // Use heredoc file descriptor
         if (fd_in) *fd_in = node->heredoc_fd;
