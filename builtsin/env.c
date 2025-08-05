@@ -6,7 +6,7 @@
 /*   By: ral-moha <ral-moha@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/15 13:08:13 by ral-moha          #+#    #+#             */
-/*   Updated: 2025/07/22 23:30:12 by ral-moha         ###   ########.fr       */
+/*   Updated: 2025/08/05 19:52:09 by ral-moha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,27 +36,3 @@ int	exec_env(t_ast_node *node, t_myenv *env)
 	if (env) env->exit_code = 0;
 	return (1);
 }
-//char	*expand_variable(const char *str, int *i, t_myenv *env)
-// {
-// 	int		start;
-// 	char	*var;
-// 	char	*val;
-
-// 	start = *i;
-// 	if (!str[*i] || (!ft_isalpha(str[*i]) && str[*i] != '_')) // strict var start
-// 	{
-// 		var = ft_substr(str, start, 1); // only $
-// 		(*i)++;
-// 		return (var);
-// 	}
-// 	while (str[*i] && (ft_isalnum(str[*i]) || str[*i] == '_')) // full var
-// 		(*i)++;
-// 	var = ft_substr(str, start, *i - start);
-// 	if (!var)
-// 		return (NULL);
-// 	val = ft_getenv(var, env);
-// 	free(var);
-// 	if (!val)
-// 		return (ft_strdup("")); // return empty string if undefined
-// 	return (ft_strdup(val));
-// }

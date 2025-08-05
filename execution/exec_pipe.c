@@ -183,6 +183,11 @@ void execute_pipe(t_ast_node *node, t_myenv *env)
         }
         close(fd[0]);
 
+        /* Right child shouldn't use heredoc_fd - close it if it exists */
+        if (node->left && node->left->heredoc_fd != -1) {
+            close(node->left->heredoc_fd);
+        }
+
         execute_ast(node->right, env);               /* <-- always run node */
         _exit(env->exit_code);
     } else if (r < 0) {
@@ -197,7 +202,10 @@ void execute_pipe(t_ast_node *node, t_myenv *env)
     close(fd[0]);
     close(fd[1]);
 
-    /* Close any heredoc fds in parent to ensure proper EOF signaling */
+    waitpid(l, &s_left, 0);
+    waitpid(r, &s_right, 0);
+    
+    /* Clean up heredoc fds after children complete */
     if (node->left && node->left->heredoc_fd != -1) {
         close(node->left->heredoc_fd);
         node->left->heredoc_fd = -1;
@@ -206,9 +214,6 @@ void execute_pipe(t_ast_node *node, t_myenv *env)
         close(node->right->heredoc_fd);
         node->right->heredoc_fd = -1;
     }
-
-    waitpid(l, &s_left, 0);
-    waitpid(r, &s_right, 0);
 
     /* Shell exit code = last command’s status (bash behavior) */
     if (WIFEXITED(s_right))
