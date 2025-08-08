@@ -6,7 +6,7 @@
 /*   By: ral-moha <ral-moha@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 12:15:37 by cdiab             #+#    #+#             */
-/*   Updated: 2025/08/05 20:50:06 by ral-moha         ###   ########.fr       */
+/*   Updated: 2025/08/07 19:57:29 by ral-moha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -128,26 +128,6 @@ char    **list_to_arr(t_tokenlist *lst, t_ast_node *node)
 	arr[i] = NULL;
 	return (arr);
 }
-
-// char **list_to_arr(t_tokenlist *lst, t_ast_node *node)
-// {
-// 	int n = list_size(lst), i = 0;
-// 	t_tokennode *cur = lst->head;
-// 	char **arr = ft_calloc(n + 1, sizeof(char *));
-// 	if (!arr) return (NULL);
-// 	while (cur)
-// 	{
-// 		char *tok = cur->token;
-// 		if ((strcmp(tok, "<") == 0 || strcmp(tok, ">") == 0) && cur->next)
-// 			in_out(cur, node), cur = cur->next->next;
-// 		else if ((strcmp(tok, "<<") == 0 || strcmp(tok, ">>") == 0) && cur->next)
-// 			app_heredoc(cur, node), cur = cur->next->next;
-// 		else
-// 			arr[i++] = ft_strdup(tok), cur = cur->next;
-// 	}
-// 	arr[i] = NULL;
-// 	return (arr);
-// }
 
 void	in_out(t_tokennode *token, t_ast_node *node)
 {

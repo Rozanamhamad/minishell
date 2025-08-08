@@ -6,7 +6,7 @@
 /*   By: ral-moha <ral-moha@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/19 22:05:25 by ral-moha          #+#    #+#             */
-/*   Updated: 2025/07/28 23:33:20 by ral-moha         ###   ########.fr       */
+/*   Updated: 2025/08/07 21:02:09 by ral-moha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,11 +20,11 @@ void execute_simple_cmd(t_ast_node *node, t_myenv *env)
     int   saved_out = -1;
     pid_t pid;
     int   status;
-
+    //If there’s no command, we have nothing to do
     if (!node || !node->arr || !node->arr[0])
         return;
     
-    // Filter out empty arguments (e.g., from $EMPTY expansion)
+    // Filter out empty arguments
     char **filtered_args = NULL;
     int arg_count = 0;
     int i = 0;
@@ -37,7 +37,7 @@ void execute_simple_cmd(t_ast_node *node, t_myenv *env)
         i++;
     }
     
-    // If no non-empty arguments, handle empty command
+    // If no non-empty arguments, handle empty command (like redirections)
     if (arg_count == 0)
     {
         if (!setup_redirections(node, &fd_in, &fd_out, env))
@@ -69,10 +69,6 @@ void execute_simple_cmd(t_ast_node *node, t_myenv *env)
     // Replace the original array temporarily
     char **original_arr = node->arr;
     node->arr = filtered_args;
-
-    // Heredoc is now handled in preprocessing phase
-    // if (node->ex_heredoc)
-    //     handle_heredoc(node);
 
     /* Only open files here; do NOT dup2 inside setup_redirections */
     if (!setup_redirections(node, &fd_in, &fd_out, env))

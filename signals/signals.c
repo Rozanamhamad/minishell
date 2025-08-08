@@ -6,23 +6,23 @@
 /*   By: ral-moha <ral-moha@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/05 22:30:56 by ral-moha          #+#    #+#             */
-/*   Updated: 2025/08/05 22:55:01 by ral-moha         ###   ########.fr       */
+/*   Updated: 2025/08/07 16:32:42 by ral-moha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../minishell.h"
 
-// The one allowed global variable
+//gv
 int g_signal_exit_status = 0;
 
-// Signal handler for SIGINT (Ctrl-C) before command execution
+//handle (Ctrl-C) before execution
 void ft_sigint_handler_beforecmd(int sig)
 {
-    g_signal_exit_status = sig;
-    rl_replace_line("", 0);
-    write(STDOUT_FILENO, "\n", 1);
-    rl_on_new_line();
-    rl_redisplay();
+    g_signal_exit_status = sig;// store signal (sigint=2) globally
+    rl_replace_line("", 0); // clear current line in readline buffer 
+    write(STDOUT_FILENO, "\n", 1);//new line  to move to next prompt 
+    rl_on_new_line();// move realine line cursor to newline 
+    //rl_redisplay();
 }
 
 // Signal handler for SIGINT (Ctrl-C) during command execution
@@ -32,22 +32,21 @@ void ft_sigint_handler_incmd(int sig)
     rl_replace_line("", 1);
     write(STDOUT_FILENO, "\n", 1);
     rl_on_new_line();
-    rl_redisplay();
-    rl_done = 1;
+    //rl_redisplay();
+    rl_done = 1;// tell readline to exit immediately
 }
 
-// Signal handler for SIGINT (Ctrl-C) during heredoc
 void ft_sigint_heredoc(int sig)
 {
-    g_signal_exit_status = sig;
+    g_signal_exit_status = sig;//Print newline to end heredoc input cleanly
     write(STDOUT_FILENO, "\n", 1);
-    exit(130);
+    exit(130);// exit child process 
 }
 
-// Signal handler for SIGQUIT (Ctrl-\)
+//(Ctrl-\)
 void handle_sigquit(int sig)
 {
-    g_signal_exit_status = sig;
+    g_signal_exit_status = sig; //3
 }
 
 // Set up signals for interactive mode
@@ -55,6 +54,7 @@ void prep_signals(void)
 {
     signal(SIGINT, ft_sigint_handler_beforecmd);
     signal(SIGQUIT, handle_sigquit);
+    //signal(SIGTSTP, SIG_IGN);
 }
 
 // Check signals in main loop
